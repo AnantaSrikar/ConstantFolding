@@ -316,6 +316,97 @@ struct ConstantPropogation : public FunctionPass {
             llvm::Instruction *userInstr = ValidUseList.pop_back_val();
             WorklistItem.ReplaceUse(userInstr);
             ValueContainer newVc(userInstr);
+            if(newVc.State == CONST)
+                WorkList.insert(WorkList.begin(),newVc);
+        }
+
+        if (instr && !instr->mayHaveSideEffects() && instr->use_empty()) {
+            instr->eraseFromParent();
+        }
+        // errs()<<" \n\n";
+    }
+
+    return true;
+  }
+
+}; // end of struct Constant Folding
+
+
+struct ConditionalConstantPropogation : public FunctionPass {
+  static char ID;
+  ConditionalConstantPropogation() : FunctionPass(ID) {}
+
+  bool runOnFunction(Function &F) override {
+    llvm::SmallVector<ValueContainer, 16> WorkList;
+    llvm::SmallVector<llvm::CallInst*, 16> InlineableCalls;
+
+    /*Begin by inlining functions to provide maximum oppurtunity to 
+    "catch" constants in the worklist further down*/
+    for(BasicBlock &BB : F)  
+    {
+      for(Instruction &inst : BB)
+      {
+        if (llvm::isa<llvm::CallInst>(inst)) { //We try to find function calls with all values predefined -- INLINE them!!
+            llvm::CallInst *Callinst = dyn_cast<llvm::CallInst>(&inst);
+            if(isInlineable(Callinst))
+            {
+                InlineableCalls.push_back(Callinst);
+            }
+        }
+      }
+    }
+
+    bool allInlineSuccess = true;
+
+    while(!InlineableCalls.empty()){
+        llvm::CallInst *inst = InlineableCalls.pop_back_val();
+        Function *calledFn = inst->getCalledFunction();
+
+        ValueToValueMapTy VMap;
+        auto argIter = calledFn->arg_begin();
+        for (unsigned i = 0; i < inst->getNumOperands() - 1; ++i, ++argIter) {
+            VMap[&*argIter] = inst->getOperand(i);
+        }
+
+        InlineFunctionInfo IFI;
+        if(!InlineFunction(*inst,IFI).isSuccess()){
+            allInlineSuccess = false;
+        }
+    }
+
+    for(BasicBlock &BB : F)  //Iterate over the basic blocks
+    {
+      for(Instruction &inst : BB) //Iterate over the instructions
+      {
+        ValueContainer newVc(&inst);
+        if(newVc.ConstantValue)
+        {
+            WorkList.insert(WorkList.begin(),newVc);
+        }
+      }
+    }
+
+    //Worklist for reaching defs of constants
+    while (!WorkList.empty()) {
+        ValueContainer WorklistItem = WorkList.pop_back_val();
+        llvm::Instruction *instr = WorklistItem.Inst;
+        llvm::Constant *constant = WorklistItem.ConstantValue;
+
+        llvm::SmallVector<llvm::Instruction*, 8> ValidUseList;
+
+        for (auto &Use : instr->uses()) {
+            llvm::User *user = Use.getUser();  // User is anything that uses the instr
+            if (llvm::Instruction *userInst = llvm::dyn_cast<llvm::Instruction>(user)) {
+                ValidUseList.push_back(userInst);
+            }
+        }
+
+
+        while(!ValidUseList.empty())
+        {
+            llvm::Instruction *userInstr = ValidUseList.pop_back_val();
+            WorklistItem.ReplaceUse(userInstr);
+            ValueContainer newVc(userInstr);
 
             if(isConstantBranch(userInstr)) //Branches that become predtermined turn up here
             //We will replace them with constant branches, followed by deleting any branches with no refs
@@ -426,5 +517,10 @@ struct ConstantPropogation : public FunctionPass {
 
 char ConstantPropogation::ID = 0;
 static RegisterPass<ConstantPropogation> X("constfold", "Constant Folding Pass",
+                             true,
+                             true /* Analysis Pass */);
+
+char ConditionalConstantPropogation::ID = 0;
+static RegisterPass<ConditionalConstantPropogation> X1("cond-constfold", "Constant Folding Pass",
                              true,
                              true /* Analysis Pass */);
