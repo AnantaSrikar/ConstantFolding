@@ -31,4 +31,4 @@ CXXFLAGS = -rdynamic $(shell llvm-config --cxxflags) $(INC) -fPIC -g -O0
 	$(CXX) -dlyb -shared $^ -o $@
 
 clean: 
-	rm -fr *.o *~ *.so tests/*.ll tests/*.bc test/*.o
+	rm -fr *.o *~ *.so tests/*.ll tests/*.bc tests/*.o
