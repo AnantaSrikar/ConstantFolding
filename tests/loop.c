@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int computeSquare(int x) {
     return x * x;
 }
@@ -6,42 +8,22 @@ int computeTriple(int x) {
     return 3 * x;
 }
 
-int compute (int var)
-{
-  int result = 0;
-  int a = 2;
-  int b = 3;
-  int c = 4 + a + b;
-  
-  float d = 2.0;
-  float e = d+1.2+32.0;
-  float f;
+int main() {
+    const int a = 10;
+    const int b = 5;
+    int result1 = computeSquare(a); // Should propagate constant but not inline function.
+    int result2 = computeTriple(b); // Should propagate constant but not inline function.
 
-  if(e>1)
-  {
-	f =	e; 
-  }
-  else{
-	f = 0;
-  }
+    int complexCalculation = result1 * b + result2 * a;
 
-  result += a;
-  result += b;
-  result *= c;
-  result /= 2;
+    // Simplified computation with constants and predictable outcomes
+    complexCalculation += a * b;
 
-	if(result==1000)
-	{
-		return(-1);
-	}
-	else
-	{
-		a = var;
-	}
+    // Loop that depends on a constant, potential for loop unrolling and simplification
+    for (int i = 0; i < a; i++) {  // 'a' is a constant, loop should optimize well
+        complexCalculation += i * computeSquare(b); // Still calling function without inlining
+    }
 
-  result+=a;
-  int inline_test1 = computeSquare(5);
-  int inline_test2 = computeTriple(10);
-  int use_inline = inline_test1+inline_test2;
-  return result+use_inline;
+    printf("Result: %d\n", complexCalculation);
+    return 0;
 }

@@ -1,4 +1,4 @@
-; ModuleID = 'loop.bc'
+; ModuleID = 'loop-m2r.ll'
 source_filename = "./tests/loop.c"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
@@ -22,27 +22,17 @@ entry:
 ; Function Attrs: noinline nounwind uwtable
 define dso_local i32 @main() #0 {
 entry:
-  %call = call i32 @computeSquare(i32 noundef 10)
-  %call1 = call i32 @computeTriple(i32 noundef 5)
-  %mul = mul nsw i32 %call, 5
-  %mul2 = mul nsw i32 %call1, 10
-  %add = add nsw i32 %mul, %mul2
-  %add3 = add nsw i32 %add, 50
   br label %for.cond
 
-for.cond:                                         ; preds = %for.inc, %entry
-  %complexCalculation.0 = phi i32 [ %add3, %entry ], [ %add6, %for.inc ]
-  %i.0 = phi i32 [ 0, %entry ], [ %inc, %for.inc ]
+for.cond:                                         ; preds = %for.body, %entry
+  %complexCalculation.0 = phi i32 [ 700, %entry ], [ %add6, %for.body ]
+  %i.0 = phi i32 [ 0, %entry ], [ %inc, %for.body ]
   %cmp = icmp slt i32 %i.0, 10
   br i1 %cmp, label %for.body, label %for.end
 
 for.body:                                         ; preds = %for.cond
-  %call4 = call i32 @computeSquare(i32 noundef 5)
-  %mul5 = mul nsw i32 %i.0, %call4
+  %mul5 = mul nsw i32 %i.0, 25
   %add6 = add nsw i32 %complexCalculation.0, %mul5
-  br label %for.inc
-
-for.inc:                                          ; preds = %for.body
   %inc = add nsw i32 %i.0, 1
   br label %for.cond, !llvm.loop !6
 
