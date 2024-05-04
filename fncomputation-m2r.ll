@@ -62,6 +62,13 @@ return:                                           ; preds = %if.end12, %if.then1
   ret i32 %retval.0
 }
 
+; Function Attrs: noinline nounwind uwtable
+define dso_local i32 @main() #0 {
+entry:
+  %call = call i32 @compute(i32 noundef 9)
+  ret i32 0
+}
+
 attributes #0 = { noinline nounwind uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 
 !llvm.module.flags = !{!0, !1, !2, !3, !4}

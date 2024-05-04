@@ -45,3 +45,8 @@ int compute (int var)
   int use_inline = inline_test1+inline_test2;
   return result+use_inline;
 }
+
+int main()
+{
+  compute(9);
+}

@@ -1,35 +1,39 @@
-; ModuleID = 'inline-test-m2r.ll'
-source_filename = "./tests/inline-test.c"
+; ModuleID = 'recursion-m2r.ll'
+source_filename = "./tests/recursion.c"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
-@.str = private unnamed_addr constant [12 x i8] c"Result: %d\0A\00", align 1
+@.str = private unnamed_addr constant [19 x i8] c"Fibonacci(20): %d\0A\00", align 1
 
 ; Function Attrs: noinline nounwind uwtable
-define dso_local i32 @add(i32 noundef %a, i32 noundef %b) #0 {
+define dso_local i32 @fibonacci(i32 noundef %n) #0 {
 entry:
-  %add = add nsw i32 %a, %b
-  ret i32 %add
+  %cmp = icmp sle i32 %n, 1
+  br i1 %cmp, label %if.then, label %if.end
+
+if.then:                                          ; preds = %entry
+  br label %return
+
+if.end:                                           ; preds = %entry
+  %sub = sub nsw i32 %n, 1
+  %call = call i32 @fibonacci(i32 noundef %sub)
+  %sub1 = sub nsw i32 %n, 2
+  %call2 = call i32 @fibonacci(i32 noundef %sub1)
+  %add = add nsw i32 %call, %call2
+  br label %return
+
+return:                                           ; preds = %if.end, %if.then
+  %retval.0 = phi i32 [ %n, %if.then ], [ %add, %if.end ]
+  ret i32 %retval.0
 }
 
 ; Function Attrs: noinline nounwind uwtable
 define dso_local i32 @main() #0 {
 entry:
-  br label %for.cond
-
-for.cond:                                         ; preds = %for.body, %entry
-  %result.0 = phi i32 [ 0, %entry ], [ %call, %for.body ]
-  %i.0 = phi i32 [ 0, %entry ], [ %inc, %for.body ]
-  %cmp = icmp slt i32 %i.0, 100
-  br i1 %cmp, label %for.body, label %for.end
-
-for.body:                                         ; preds = %for.cond
-  %call = call i32 @add(i32 noundef %result.0, i32 noundef %i.0)
-  %inc = add nsw i32 %i.0, 1
-  br label %for.cond, !llvm.loop !6
-
-for.end:                                          ; preds = %for.cond
-  %call1 = call i32 (ptr, ...) @printf(ptr noundef @.str, i32 noundef %result.0)
+  %call.i = call i32 @fibonacci(i32 noundef 19)
+  %call2.i = call i32 @fibonacci(i32 noundef 18)
+  %add.i = add nsw i32 %call.i, %call2.i
+  %call1 = call i32 (ptr, ...) @printf(ptr noundef @.str, i32 noundef %add.i)
   ret i32 0
 }
 
@@ -47,5 +51,3 @@ attributes #1 = { "frame-pointer"="all" "no-trapping-math"="true" "stack-protect
 !3 = !{i32 7, !"uwtable", i32 2}
 !4 = !{i32 7, !"frame-pointer", i32 2}
 !5 = !{!"clang version 17.0.6 (https://github.com/llvm/llvm-project.git 6009708b4367171ccdbf4b5905cb6a803753fe18)"}
-!6 = distinct !{!6, !7}
-!7 = !{!"llvm.loop.mustprogress"}
