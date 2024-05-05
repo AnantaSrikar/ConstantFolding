@@ -9,8 +9,9 @@ OBJECTS = $(SOURCES:.c=.o)
 BCOBJS = $(SOURCES:.c=.bc)
 M2ROBJS = $(BCOBJS:.bc=-m2r.ll)
 OPTOBJS = $(M2ROBJS:-m2r.ll=-m2r-opt.ll)
+EXECOBJS = $(OPTOBJS:-m2r-opt.ll=-opt.o)
 
-all: ConstantFolder.so $(OBJECTS) $(BCOBJS) $(M2ROBJS) $(OPTOBJS)
+all: ConstantFolder.so $(OBJECTS) $(BCOBJS) $(M2ROBJS) $(OPTOBJS) $(EXECOBJS)
 
 CXXFLAGS = -rdynamic $(shell llvm-config --cxxflags) $(INC) -fPIC -g -O0
 
@@ -27,8 +28,21 @@ CXXFLAGS = -rdynamic $(shell llvm-config --cxxflags) $(INC) -fPIC -g -O0
 %-m2r-opt.ll: %-m2r.ll
 	opt -S -bugpoint-enable-legacy-pm=1 -load ./ConstantFolder.so -constfold $< -o $@
 
+%-opt.o: %-m2r-opt.ll
+	clang $< -o $@
+
 %.so: %.o
 	$(CXX) -dlyb -shared $^ -o $@
 
+# To print stats with lli
+print-stats:
+	@for file in tests/*m2r*.ll; do \
+		count=$$(lli -stats -force-interpreter "$$file" 2>&1 | grep "interpreter - Number of dynamic instructions executed" | grep -o '[0-9]\+'); \
+		echo "$$file: $$count"; \
+	done
+
+benchmark-def:
+	clear
+
 clean: 
-	rm -fr *.o *~ *.so tests/*.ll tests/*.bc tests/*.o
+	rm -fr *.o *.so tests/*.ll tests/*.bc tests/*.o
